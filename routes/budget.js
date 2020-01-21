@@ -40,7 +40,7 @@ router.get('/', verify, async (req,res) => {
              'totalTransactions': 1
          }}
     ]);
-    res.send(budgets);
+    res.send({'budgets': budgets});
 });
 
 //Get specific Budget
@@ -75,7 +75,7 @@ router.get('/:budgetId', verify, async (req,res) => {
              'totalTransactions': 1
          }}
     ]);
-    res.send(budget);
+    res.send({'budget': budget});
 });
 
 //Add New Budget
@@ -117,31 +117,90 @@ router.put('/:budgetId', verify, async (req,res) => {
 router.delete('/:budgetId', verify, async (req,res) => {
     deletedBudget = await Budget.deleteOne({ $and: [{_id: {$eq: req.params.budgetId}},{owner: {$eq: req.user._id}}]});
     if (deletedBudget && deletedBudget.deletedCount == 1) {
-        res.send({deleted: true});
+        deletedTrans = await Transaction.deleteMany({budget: req.params.budgetId});
+        res.send({deletedBudget: true,
+                  deletedBudgetCount: deletedBudget.deletedCount,
+                  deletedTrans: true,
+                  deletedTransCount: deletedTrans.deletedCount});
     } else {
-        res.status(400).send({deleted: false});
+        res.status(400).send({deleted: false,count: deletedBudget.deletedCount});
     }
 });
 
 //Get specific Budget all Transactions
 router.get('/:budgetId/transactions', verify, async (req,res) => {
-    budget = await Budget.findOne({_id: req.params.budgetId}).populate('transactions');
-    res.send(budget.transactions);
+    try {
+        budget = await Budget.findOne({_id: req.params.budgetId}).populate('transactions');
+        res.send({'transactions': budget.transactions});
+    } catch (err) {
+        res.status(400).send('Error finding transactions!');
+    }
 });
 
 //Add New Transaction
 router.post('/:budgetId/transactions', verify, async (req,res) => {
-    const transaction = new Transaction({
-        owner: req.user._id,
-        name: req.body.name,
-        amount: req.body.amount,
-        budget: req.params.budgetId
-    });
-    const budget = await Budget.findOne({_id: req.params.budgetId});
-    savedTransaction = await transaction.save();
-    budget.transactions.push(transaction);
-    savedBudget = await budget.save();
-    res.send(savedBudget);
+    try {
+        const transaction = new Transaction({
+            owner: req.user._id,
+            name: req.body.name,
+            amount: req.body.amount,
+            budget: req.params.budgetId
+        });
+        const budget = await Budget.findOne({_id: req.params.budgetId});
+        savedTransaction = await transaction.save();
+        budget.transactions.push(transaction);
+        savedBudget = await budget.save();
+        res.send(savedTransaction);
+    } catch (err) {
+        res.status(400).send(err.message);
+    }
+});
+
+//Get specific transaction
+router.get('/:budgetId/transactions/:transactionId', verify, async (req,res) => {
+    try {
+        const transaction = await Transaction.findOne({$and: [{_id: req.params.transactionId},
+                                                            {budget: req.params.budgetId},
+                                                            {owner: req.user._id}]});
+        if (transaction) {
+            res.send(transaction);
+        } else {
+            res.status(400).send('Transaction not found!');
+        }
+    } catch (err) {
+        res.status(400).send(err.message);
+    }
+});             
+
+//Update specific transaction
+router.put('/:budgetId/transactions/:transactionId', verify, async (req,res) => {
+    try {
+        updatedTransaction = await Transaction.updateOne({ $and: [{_id: req.params.transactionId},{owner: req.user._id},{budget: req.params.budgetId}]},
+                                                {$set: {name: req.body.name,
+                                                        amount: req.body.amount}});
+        if (updatedTransaction && updatedTransaction.nModified == 1){
+            res.send({updated: true});
+        } else {
+            res.send({updated: false});
+        }
+    } catch(err){
+        res.status(400).send({updated: false});
+    }
+});
+
+//Delete Specific Transaction
+router.delete('/:budgetId/transactions/:transactionId', verify, async (req,res) => {
+    try {
+        deletedTransaction = await Transaction.deleteOne({ $and: [{_id: req.params.transactionId},{owner: req.user._id},{budget: req.params.budgetId}]});
+        if (deletedTransaction && deletedTransaction.deletedCount == 1) {
+            res.send({deleted: true,
+                    count: deletedTransaction.deletedCount});
+        } else {
+            res.status(400).send({deleted: false,count: deletedTransaction.deletedCount});
+        }
+    } catch (err) {
+        res.status(400).send({deleted: false,message: err.message});
+    }
 });
 
 module.exports = router;
