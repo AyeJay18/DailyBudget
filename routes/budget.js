@@ -183,7 +183,7 @@ router.post('/:budgetId/transactions', verify, async (req,res) => {
         savedTransaction = await transaction.save();
         budget.transactions.push(transaction);
         savedBudget = await budget.save();
-        res.send(savedTransaction);
+        res.send({'transaction': savedTransaction});
     } catch (err) {
         res.status(400).send(err.message);
     }
@@ -200,7 +200,7 @@ router.get('/:budgetId/transactions/:transactionId', verify, async (req,res) => 
                                                             {budget: req.params.budgetId},
                                                             {owner: req.user._id}]});
         if (transaction) {
-            res.send(transaction);
+            res.send({'transaction': transaction});
         } else {
             res.status(400).send('Transaction not found!');
         }
