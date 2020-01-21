@@ -1,0 +1,3 @@
+Remove deleted transactions from budget transactions array
+Add Sharing functionality
+Upgrade authentication library
