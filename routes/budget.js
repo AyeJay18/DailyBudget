@@ -3,13 +3,8 @@ const mongoose = require('mongoose');
 const User = require('../model/User');
 const Budget = require('../model/Budget');
 const Transaction = require('../model/Transaction');
-//Add for Private Routes
 const verify = require('./verifyToken');
 const {budgetValidation, transactionValidation, uuidValidation} = require('../validation');
-
-//Add verify for private methods
-//TODO:
-// Add Validation for fields
 
 //Get All Budgets
 router.get('/', verify, async (req,res) => {
@@ -151,8 +146,8 @@ router.delete('/:budgetId', verify, async (req,res) => {
 
 //Get Shared Users
 router.get('/:budgetId/share', verify, async (req,res) => {
-    const budgetShareUsers = await Budget.findOne({'_id': req.params.budgetId}).populate('sharedUsers');
-    res.send({'SharedUsers': budgetShareUsers});
+    const budgetSharedUsers = await Budget.findOne({'_id': req.params.budgetId}).populate('sharedUsers','name email');
+    res.send({'SharedUsers': budgetSharedUsers.sharedUsers});
 });
 
 //Add Shared User
@@ -160,14 +155,20 @@ router.post('/:budgetId/share', verify, async (req,res) => {
     const email = req.body.email;
     const user = await User.findOne({'email': email});
     const budget = await Budget.findOne({'_id': req.params.budgetId});
-    budget.sharedUsers.push(user);
-    budget.save();
-    res.send('Added');
+    if (!budget.sharedUsers.includes(user._id)){
+        budget.sharedUsers.push(user);
+        budget.save();
+    }
+    res.send({'AddedUser': user._id});
 });
 
 //Remove Shared User
-router.delete('/:budgetId/share/:shareUserId', verify, async (req,res) => {
-    res.send('Remove Shared User');
+router.delete('/:budgetId/share/:sharedUserId', verify, async (req,res) => {
+    const budget = await Budget.findOne({'_id': req.params.budgetId});
+    console.log(req.params.sharedUserId);
+    budget.sharedUsers.pull(req.params.sharedUserId);
+    const savedBudget = await budget.save();
+    res.send(savedBudget);
 });
 
 //Get All Budget Transactions
