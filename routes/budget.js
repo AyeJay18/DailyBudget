@@ -10,7 +10,7 @@ const {budgetValidation, transactionValidation, uuidValidation} = require('../va
 router.get('/', verify, async (req,res) => {
     const ownerId = new mongoose.Types.ObjectId(req.user._id);
     budgets = await Budget.aggregate([
-        {'$match': {'owner' : ownerId }},
+        {'$match': {'$or': [{'owner' : ownerId },{'sharedUsers': ownerId}]}},
         {"$lookup": {
             "from": "transactions",
             "localField": "_id",
@@ -34,7 +34,8 @@ router.get('/', verify, async (req,res) => {
              'recurringType': 1,
              'recurringAmount': 1,
              'dateCreated': 1,
-             'totalTransactions': 1
+             'totalTransactions': 1,
+             'sharedUsers': 1
          }}
     ]);
     res.send({'budgets': budgets});
@@ -49,7 +50,11 @@ router.get('/:budgetId', verify, async (req,res) => {
     const ownerId = new mongoose.Types.ObjectId(req.user._id);
     const budgetId = new mongoose.Types.ObjectId(req.params.budgetId);
     budget = await Budget.aggregate([
-        {'$match': {'$and': [{'owner' : ownerId },{'_id': budgetId}]}},
+        {'$match': {'$and': [
+            {'$or': [
+                {'sharedUsers': ownerId },
+                {'owner' : ownerId }]},
+            {'_id': budgetId}]}},
         {"$lookup": {
             "from": "transactions",
             "localField": "_id",
@@ -73,7 +78,8 @@ router.get('/:budgetId', verify, async (req,res) => {
              'recurringType': 1,
              'recurringAmount': 1,
              'dateCreated': 1,
-             'totalTransactions': 1
+             'totalTransactions': 1,
+             'sharedUsers': 1
          }}
     ]);
     res.send({'budget': budget});
@@ -111,7 +117,7 @@ router.put('/:budgetId', verify, async (req,res) => {
     if (error) return res.status(400).send(error.details[0].message);
 
     try {
-        updatedBudget = await Budget.updateOne({ $and: [{_id: {$eq: req.params.budgetId}},{owner: {$eq: req.user._id}}]},
+        const updatedBudget = await Budget.updateOne({ $and: [{_id: req.params.budgetId},{$or: [{owner: req.user._id},{sharedUsers: req.user._id}]}]},
                                                 {$set: {name: req.body.name,
                                                         recurringType: req.body.recurringType,
                                                         recurringAmount: req.body.recurringAmount,
@@ -132,7 +138,7 @@ router.delete('/:budgetId', verify, async (req,res) => {
     const { uuidError } = uuidValidation(req.params);
     if (uuidError) return res.status(400).send(error.details[0].message);
 
-    deletedBudget = await Budget.deleteOne({ $and: [{_id: {$eq: req.params.budgetId}},{owner: {$eq: req.user._id}}]});
+    deletedBudget = await Budget.deleteOne({ $and: [{_id: req.params.budgetId},{owner: req.user._id}]});
     if (deletedBudget && deletedBudget.deletedCount == 1) {
         deletedTrans = await Transaction.deleteMany({budget: req.params.budgetId});
         res.send({deletedBudget: true,
@@ -146,29 +152,37 @@ router.delete('/:budgetId', verify, async (req,res) => {
 
 //Get Shared Users
 router.get('/:budgetId/share', verify, async (req,res) => {
-    const budgetSharedUsers = await Budget.findOne({'_id': req.params.budgetId}).populate('sharedUsers','name email');
-    res.send({'SharedUsers': budgetSharedUsers.sharedUsers});
+    const budgetSharedUsers = await Budget.findOne({$and: [{_id: req.params.budgetId},{owner: req.user._id}]}).populate('sharedUsers','name email');
+    if (budgetSharedUsers) {
+        res.send({'SharedUsers': budgetSharedUsers.sharedUsers});
+    } else {
+        res.send({'SharedUsers': null});
+    }
 });
 
 //Add Shared User
 router.post('/:budgetId/share', verify, async (req,res) => {
     const email = req.body.email;
     const user = await User.findOne({'email': email});
-    const budget = await Budget.findOne({'_id': req.params.budgetId});
-    if (!budget.sharedUsers.includes(user._id)){
+    const budget = await Budget.findOne({$and: [{'_id': req.params.budgetId},{'owner': req.user._id}]}).populate('sharedUsers','name email');
+    if (budget && !budget.sharedUsers.includes(user._id)){
         budget.sharedUsers.push(user);
         budget.save();
+        res.send({'sharedUsers': budget.sharedUsers});
     }
-    res.send({'AddedUser': user._id});
+    res.send({'sharedUsers': null});
 });
 
 //Remove Shared User
 router.delete('/:budgetId/share/:sharedUserId', verify, async (req,res) => {
-    const budget = await Budget.findOne({'_id': req.params.budgetId});
-    console.log(req.params.sharedUserId);
-    budget.sharedUsers.pull(req.params.sharedUserId);
-    const savedBudget = await budget.save();
-    res.send(savedBudget);
+    const budget = await Budget.findOne({$and: [{_id: req.params.budgetId},{owner: req.user._id}]}).populate('sharedUsers','name email');
+    if (budget) {
+        budget.sharedUsers.pull(req.params.sharedUserId);
+        const savedBudget = await budget.save();
+        res.send({'sharedUsers': savedBudget.sharedUsers});
+    } else {
+        res.send({'sharedUsers': null});
+    }
 });
 
 //Get All Budget Transactions
@@ -178,7 +192,7 @@ router.get('/:budgetId/transactions', verify, async (req,res) => {
     if (uuidError) return res.status(400).send(error.details[0].message);
 
     try {
-        budget = await Budget.findOne({_id: req.params.budgetId}).populate('transactions');
+        budget = await Budget.findOne({$and: [{_id: req.params.budgetId},{$or: [{owner: req.user._id},{sharedUsers: req.user._id}]}]}).populate('transactions');
         res.send({'transactions': budget.transactions});
     } catch (err) {
         res.status(400).send('Error finding transactions!');
@@ -201,7 +215,7 @@ router.post('/:budgetId/transactions', verify, async (req,res) => {
             amount: req.body.amount,
             budget: req.params.budgetId
         });
-        const budget = await Budget.findOne({_id: req.params.budgetId});
+        const budget = await Budget.findOne({$and: [{_id: req.params.budgetId},{$or: [{owner: req.user._id},{sharedUsers: req.user._id}]}]});
         savedTransaction = await transaction.save();
         budget.transactions.push(transaction);
         savedBudget = await budget.save();
@@ -263,7 +277,7 @@ router.delete('/:budgetId/transactions/:transactionId', verify, async (req,res) 
     try {
         deletedTransaction = await Transaction.deleteOne({ $and: [{_id: req.params.transactionId},{budget: req.params.budgetId}]});
         if (deletedTransaction && deletedTransaction.deletedCount == 1) {
-            const budget = await Budget.findOne({_id: req.params.budgetId});
+            const budget = await Budget.findOne({$and: [{_id: req.params.budgetId},{$or: [{owner: req.user._id},{sharedUsers: req.user._id}]}]});
             budget.transactions.pull(req.params.transactionId);
             savedBudget = await budget.save();
             res.send({deleted: true,
