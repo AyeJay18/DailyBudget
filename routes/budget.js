@@ -199,6 +199,23 @@ router.get('/:budgetId/transactions', verify, async (req,res) => {
     }
 });
 
+//Get All Budget Transactions by Page
+router.get('/:budgetId/transactions/:page', verify, async (req,res) => {
+    //Validate UUID data
+    const { uuidError } = uuidValidation(req.params);
+    if (uuidError) return res.status(400).send(error.details[0].message);
+
+    try {
+        const resultsPerPage = 20;
+        const page = req.params.page || 1;
+        const transactionsCount = await Transaction.countDocuments({budget: req.params.budgetId});
+        const transactions = await Transaction.find({budget: req.params.budgetId}).skip(resultsPerPage*(page-1)).limit(resultsPerPage);
+        res.send({'count': transactionsCount,'transactions': transactions});
+    } catch (err) {
+        res.status(400).send('Error finding transactions!');
+    }
+});
+
 //Add New Transaction
 router.post('/:budgetId/transactions', verify, async (req,res) => {
     //Validate UUID data
