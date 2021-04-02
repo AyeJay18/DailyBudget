@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const Transaction = require('./Transaction');
 
-const opts = {toJSON: {virtuals: true}};
+const opts = {toJSON: {virtuals: true},toObject: {virtuals: true}};
 
 const budgetSchema = new mongoose.Schema({
     owner: {

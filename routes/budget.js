@@ -5,6 +5,7 @@ const Budget = require('../model/Budget');
 const Transaction = require('../model/Transaction');
 const verify = require('./verifyToken');
 const {budgetValidation, transactionValidation, uuidValidation} = require('../validation');
+const opts = {toJSON: {virtuals: true}};
 
 //Get All Budgets
 router.get('/', verify, async (req,res) => {
@@ -82,7 +83,7 @@ router.get('/:budgetId', verify, async (req,res) => {
              'sharedUsers': 1
          }}
     ]);
-    res.send({'budget': budget});
+    res.send({budget: budget[0]});
 });
 
 //Add New Budget
@@ -152,36 +153,41 @@ router.delete('/:budgetId', verify, async (req,res) => {
 
 //Get Shared Users
 router.get('/:budgetId/share', verify, async (req,res) => {
-    const budgetSharedUsers = await Budget.findOne({$and: [{_id: req.params.budgetId},{owner: req.user._id}]}).populate('sharedUsers','name email');
+    const budgetSharedUsers = await Budget.findOne({$and: [{_id: req.params.budgetId},{owner: req.user._id}]},{password: 0}).populate('sharedUsers','name email');
     if (budgetSharedUsers) {
         res.send({'SharedUsers': budgetSharedUsers.sharedUsers});
     } else {
-        res.send({'SharedUsers': null});
+        res.send({'SharedUsers': []});
     }
 });
 
 //Add Shared User
 router.post('/:budgetId/share', verify, async (req,res) => {
     const email = req.body.email;
-    const user = await User.findOne({'email': email});
-    const budget = await Budget.findOne({$and: [{'_id': req.params.budgetId},{'owner': req.user._id}]}).populate('sharedUsers','name email');
-    if (budget && !budget.sharedUsers.includes(user._id)){
-        budget.sharedUsers.push(user);
-        budget.save();
-        res.send({'sharedUsers': budget.sharedUsers});
+    const user = await User.findOne({'email': email},{password: 0});
+    const budget = await Budget.findOne({$and: [{'_id': req.params.budgetId},{'owner': req.user._id}]},{password: 0, date: 0}).populate('sharedUsers','name email');
+    if (budget && user) {
+        if (!budget.sharedUsers.includes(user._id)){
+             budget.sharedUsers.push(user);
+             budget.save();
+             res.send({'SharedUsers': budget.sharedUsers});
+        } else {
+             res.send({'SharedUsers': budget.sharedUsers});
+        }
+    } else {
+        res.status(400).send("Budget or User not Found!");
     }
-    res.send({'sharedUsers': null});
 });
 
 //Remove Shared User
 router.delete('/:budgetId/share/:sharedUserId', verify, async (req,res) => {
-    const budget = await Budget.findOne({$and: [{_id: req.params.budgetId},{owner: req.user._id}]}).populate('sharedUsers','name email');
+    const budget = await Budget.findOne({$and: [{_id: req.params.budgetId},{$or: [{owner: req.user._id},{sharedUsers: req.user._id}]}]},{password: 0}).populate('sharedUsers','name email');
     if (budget) {
         budget.sharedUsers.pull(req.params.sharedUserId);
         const savedBudget = await budget.save();
         res.send({'sharedUsers': savedBudget.sharedUsers});
     } else {
-        res.send({'sharedUsers': null});
+        res.send({'sharedUsers': []});
     }
 });
 
@@ -192,7 +198,7 @@ router.get('/:budgetId/transactions', verify, async (req,res) => {
     if (uuidError) return res.status(400).send(error.details[0].message);
 
     try {
-        budget = await Budget.findOne({$and: [{_id: req.params.budgetId},{$or: [{owner: req.user._id},{sharedUsers: req.user._id}]}]}).populate('transactions');
+        budget = await Budget.findOne({$and: [{_id: req.params.budgetId},{$or: [{owner: req.user._id},{sharedUsers: req.user._id}]}]}).populate({path: 'transactions', options: {sort: {'dateCreated': -1}}});
         res.send({'transactions': budget.transactions});
     } catch (err) {
         res.status(400).send('Error finding transactions!');
@@ -200,7 +206,7 @@ router.get('/:budgetId/transactions', verify, async (req,res) => {
 });
 
 //Get All Budget Transactions by Page
-router.get('/:budgetId/transactions/:page', verify, async (req,res) => {
+router.get('/:budgetId/transactions/p/:page', verify, async (req,res) => {
     //Validate UUID data
     const { uuidError } = uuidValidation(req.params);
     if (uuidError) return res.status(400).send(error.details[0].message);

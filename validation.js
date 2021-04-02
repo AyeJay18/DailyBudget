@@ -17,6 +17,22 @@ const registerValidation = data => {
     return schema.validate(data);
 };
 
+//Profile Validation
+const profileValidation = data => {
+    const schema = Joi.object({
+        name: Joi.string()
+            .min(6)
+            .required(),
+        email: Joi.string()
+            .min(6)
+            .required()
+            .email(),
+        password: Joi.string()
+            .min(6)
+    });
+    return schema.validate(data);
+};
+
 //Login Validation
 const loginValidation = data => {
     const schema = Joi.object({
@@ -78,3 +94,4 @@ module.exports.loginValidation = loginValidation;
 module.exports.budgetValidation = budgetValidation;
 module.exports.transactionValidation = transactionValidation;
 module.exports.uuidValidation = uuidValidation;
+module.exports.profileValidation = profileValidation;
