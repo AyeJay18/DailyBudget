@@ -2,14 +2,14 @@ const express = require('express');
 const app = express();
 const dotenv = require('dotenv');
 const mongoose = require('mongoose');
-const https = require('https');
+//const https = require('https');
 const fs = require('fs');
 const cors = require('cors');
 
-const httpsServer = https.createServer({
-    key: fs.readFileSync('/etc/letsencrypt/live/api.martinirita.com/privkey.pem'),
-    cert: fs.readFileSync('/etc/letsencrypt/live/api.martinirita.com/fullchain.pem'),
-}, app);
+//const httpsServer = https.createServer({
+//    key: fs.readFileSync('/etc/letsencrypt/live/api.martinirita.com/privkey.pem'),
+//    cert: fs.readFileSync('/etc/letsencrypt/live/api.martinirita.com/fullchain.pem'),
+//}, app);
 
 //Import Routes
 const authRoute = require('./routes/auth');
@@ -32,5 +32,5 @@ app.use(cors());
 app.use('/', authRoute);
 app.use('/budget', budgetRoute);
 
-//app.listen(3000, () => console.log('Server up and running!'));
-httpsServer.listen(3000, () => console.log('Server up and running!'));
+app.listen(3000, () => console.log('Server up and running!'));
+//httpsServer.listen(3000, () => console.log('Server up and running!'));
