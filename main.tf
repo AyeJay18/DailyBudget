@@ -35,9 +35,9 @@ resource "azurerm_app_service_plan" "dailybudget_asp" {
 
 resource "azurerm_app_service" "dailybudget_as" {
   name                = "DailyBudgetTest"
-  location            = azurerm_resource_group.dailybudget_as.location
-  resource_group_name = azurerm_resource_group.dailybudget_as.name
-  app_service_plan_id = azurerm_app_service_plan.dailybudget_as.id
+  location            = azurerm_resource_group.dailybudget_rg.location
+  resource_group_name = azurerm_resource_group.dailybudget_rg.name
+  app_service_plan_id = azurerm_app_service_plan.dailybudget_asp.id
 
   site_config {
     dotnet_framework_version = "v4.0"
