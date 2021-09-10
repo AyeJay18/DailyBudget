@@ -17,6 +17,11 @@ variable "dbconnectstring" {
   description = "MongoDB Connect String"
 }
 
+variable "TOKEN_SECRET" {
+  type        = string
+  description = "JWT Token Secret"
+}
+
 resource "azurerm_resource_group" "dailybudget_rg" {
   name     = "DailyBudgetTest"
   location = "East US"
@@ -45,5 +50,6 @@ resource "azurerm_app_service" "dailybudget_as" {
 
   app_settings = {
     "DB_CONNECT" = "${var.dbconnectstring}"
+    "TOKEN_SECRET" = "${var.TOKEN_SECRET}"
   }
 }
