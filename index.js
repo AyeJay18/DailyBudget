@@ -5,6 +5,7 @@ const mongoose = require('mongoose');
 //const https = require('https');
 const fs = require('fs');
 const cors = require('cors');
+const port = process.env.PORT || 3000;
 
 //const httpsServer = https.createServer({
 //    key: fs.readFileSync('/etc/letsencrypt/live/api.martinirita.com/privkey.pem'),
@@ -32,5 +33,5 @@ app.use(cors());
 app.use('/', authRoute);
 app.use('/budget', budgetRoute);
 
-app.listen(3000, () => console.log('Server up and running!'));
+app.listen(port, () => console.log('Server up and running!'));
 //httpsServer.listen(3000, () => console.log('Server up and running!'));
