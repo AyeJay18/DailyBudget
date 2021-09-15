@@ -32,10 +32,12 @@ resource "azurerm_app_service_plan" "main" {
   location            = azurerm_resource_group.main.location
   resource_group_name = azurerm_resource_group.main.name
   kind = "Linux"
+  reserved = true
 
   sku {
     tier = "Free"
     size = "F1"
+    capacity = 1
   }
 }
 
