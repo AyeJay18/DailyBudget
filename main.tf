@@ -50,6 +50,7 @@ resource "azurerm_app_service" "dailybudget_as" {
   site_config {
     use_32_bit_worker_process = true
     linux_fx_version = "NODE|14-lts"
+    always_on = true
   }
 
   app_settings = {
