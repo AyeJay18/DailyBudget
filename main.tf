@@ -37,6 +37,7 @@ resource "azurerm_app_service_plan" "dailybudget_asp" {
   sku {
     tier = "Free"
     size = "F1"
+    capacity = 1
   }
 }
 
@@ -47,6 +48,7 @@ resource "azurerm_app_service" "dailybudget_as" {
   app_service_plan_id = azurerm_app_service_plan.dailybudget_asp.id
 
   site_config {
+    use_32_bit_worker_process = true
     linux_fx_version = "NODE|14-lts"
   }
 
