@@ -22,15 +22,15 @@ variable "TOKEN_SECRET" {
   description = "JWT Token Secret"
 }
 
-resource "azurerm_resource_group" "dailybudget_rg" {
+resource "azurerm_resource_group" "main" {
   name     = "DailyBudgetTest"
   location = "East US"
 }
 
-resource "azurerm_app_service_plan" "dailybudget_asp" {
+resource "azurerm_app_service_plan" "main" {
   name                = "DailyBudgetTest"
-  location            = azurerm_resource_group.dailybudget_rg.location
-  resource_group_name = azurerm_resource_group.dailybudget_rg.name
+  location            = azurerm_resource_group.main.location
+  resource_group_name = azurerm_resource_group.main.name
   kind = "Linux"
   reserved = true
 
@@ -41,16 +41,14 @@ resource "azurerm_app_service_plan" "dailybudget_asp" {
   }
 }
 
-resource "azurerm_app_service" "dailybudget_as" {
+resource "azurerm_app_service" "main" {
   name                = "DailyBudgetTest"
-  location            = azurerm_resource_group.dailybudget_rg.location
-  resource_group_name = azurerm_resource_group.dailybudget_rg.name
-  app_service_plan_id = azurerm_app_service_plan.dailybudget_asp.id
+  location            = azurerm_resource_group.main.location
+  resource_group_name = azurerm_resource_group.main.name
+  app_service_plan_id = azurerm_app_service_plan.main.id
 
   site_config {
-    use_32_bit_worker_process = true
     linux_fx_version = "NODE|14-lts"
-    always_on = true
   }
 
   app_settings = {
