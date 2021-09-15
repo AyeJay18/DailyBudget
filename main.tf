@@ -31,6 +31,8 @@ resource "azurerm_app_service_plan" "dailybudget_asp" {
   name                = "DailyBudgetTest"
   location            = azurerm_resource_group.dailybudget_rg.location
   resource_group_name = azurerm_resource_group.dailybudget_rg.name
+  kind = "Linux"
+  reserved = true
 
   sku {
     tier = "Free"
@@ -45,7 +47,7 @@ resource "azurerm_app_service" "dailybudget_as" {
   app_service_plan_id = azurerm_app_service_plan.dailybudget_asp.id
 
   site_config {
-    linux_fx_version = "NODE|10.14"
+    linux_fx_version = "NODE|14-lts"
   }
 
   app_settings = {
