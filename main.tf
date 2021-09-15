@@ -47,7 +47,7 @@ resource "azurerm_app_service" "dailybudget_as" {
   app_service_plan_id = azurerm_app_service_plan.dailybudget_asp.id
 
   site_config {
-    linux_fx_version = "NODE|14-lts"
+    linux_fx_version = "NODE|10.14"
   }
 
   app_settings = {
