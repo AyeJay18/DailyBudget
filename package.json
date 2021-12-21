@@ -4,7 +4,6 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "startdev": "nodemon index.js",
     "start": "node index.js"
   },
   "author": "",
@@ -17,8 +16,5 @@
     "express": "^4.17.1",
     "jsonwebtoken": "^8.5.1",
     "mongoose": "^5.12.3"
-  },
-  "devDependencies": {
-    "nodemon": "^2.0.2"
   }
 }
