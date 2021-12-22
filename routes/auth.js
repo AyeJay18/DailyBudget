@@ -148,7 +148,7 @@ router.post('/forgotpassword', async (req,res) => {
         to: user.email,
         from: email,
         template: 'forgot-password-email',
-        subject: 'Reset your password for DailyBudget!',
+        subject: 'Reset your password for DegenStash!',
         context: {
             url: process.env.HOSTNAME + 'reset_password?token=' + token,
             name: user.name.split(' ')[0]
@@ -164,7 +164,7 @@ router.post('/forgotpassword', async (req,res) => {
 
 //Reset Password Render Page
 router.get('/reset_password', async (req,res) => {
-    return res.sendFile(path.resolve('./public/reset-password.html'));
+    return res.sendFile(path.resolve('./public/reset-password-' + process.env.SDLC + '.html'));
 });
 
 //Reset Password
@@ -195,7 +195,7 @@ router.post('/reset_password', async (req,res) => {
             to: user.email,
             from: email,
             template: 'reset-password-email',
-            subject: 'DailyBudget Password Reset Confirmation',
+            subject: 'DegenStash Password Reset Confirmation',
             context: {
                 name: user.name.split(' ')[0]
             }
