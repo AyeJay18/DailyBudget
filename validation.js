@@ -47,6 +47,32 @@ const loginValidation = data => {
     return schema.validate(data);
 };
 
+//ForgotPassword Validation
+const forgotPasswordValidation = data => {
+    const schema = Joi.object({
+        email: Joi.string()
+            .min(6)
+            .required()
+            .email()
+    });
+    return schema.validate(data);
+};
+
+//ForgotPassword Validation
+const resetPasswordValidation = data => {
+    const schema = Joi.object({
+        token: Joi.string()
+            .required(),
+        newPassword: Joi.string()
+            .min(6)
+            .required(),
+        verifyPassword: Joi.string()
+            .min(6)
+            .required()
+    });
+    return schema.validate(data);
+};
+
 const budgetValidation = data => {
     const schema = Joi.object({
         name: Joi.string()
@@ -95,3 +121,5 @@ module.exports.budgetValidation = budgetValidation;
 module.exports.transactionValidation = transactionValidation;
 module.exports.uuidValidation = uuidValidation;
 module.exports.profileValidation = profileValidation;
+module.exports.forgotPasswordValidation = forgotPasswordValidation;
+module.exports.resetPasswordValidation = resetPasswordValidation;
