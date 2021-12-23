@@ -5,13 +5,16 @@ const {registerValidation, loginValidation, profileValidation, forgotPasswordVal
 const bcrypt = require('bcryptjs');
 const verify = require('./verifyToken');
 const path = require('path');
-const hbs = require('nodemailer-express-handlebars'),
-    email = process.env.MAILER_EMAIL_ID,
-    pass = process.env.MAILER_PASSWORD
-    nodemailer = require('nodemailer');
+const hbs = require('nodemailer-express-handlebars');
+const nodemailer = require('nodemailer');
+const dotenv = require('dotenv');
+dotenv.config();
+
+const email = process.env.MAILER_EMAIL;
+const pass = process.env.MAILER_PASSWORD;
 
 const smtpTransport = nodemailer.createTransport({
-    service: process.env.MAILER_SERVICE_PROVIDER,
+    service: process.env.MAILER_SERVICE,
     auth: {
         user: email,
         pass: pass
@@ -154,10 +157,15 @@ router.post('/forgotpassword', async (req,res) => {
             name: user.name.split(' ')[0]
         }
     };
-    emailResult = await smtpTransport.sendMail(data);
-    if (emailResult && emailResult.accepted.length > 0) {
-        return res.status(200).send('If email address is found, a password reset link will be sent.');
-    } else {
+    try {
+        emailResult = await smtpTransport.sendMail(data);
+        if (emailResult && emailResult.accepted.length > 0) {
+            return res.status(200).send('If email address is found, a password reset link will be sent.');
+        } else {
+            return res.status(200).send('If email address is found, a password reset link will be sent.');
+        }
+    } catch (err) {
+        console.log(err);
         return res.status(200).send('If email address is found, a password reset link will be sent.');
     }
 });
@@ -169,6 +177,9 @@ router.get('/reset_password', async (req,res) => {
 
 //Reset Password
 router.post('/reset_password', async (req,res) => {
+    //Validate User data
+    const { error } = resetPasswordValidation(req.body);
+    if (error) return res.status(400).send(error.details[0].message);
 
     //Check if user exists already
     const user = await User.findOne({
